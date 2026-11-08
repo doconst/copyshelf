@@ -45,7 +45,7 @@ CopyShelf lives in the menu bar and keeps the 100 most recent plain-text items y
 2. Copy text in any app. CopyShelf adds it to your history.
 3. Open the menu bar popover and select an item to put it back on the system clipboard.
 4. Switch to the app where you want the text and press `⌘V`. CopyShelf does not paste for you and needs no Accessibility permission.
-5. Click **清空** to delete the saved history. This does not clear the current system clipboard.
+5. Click **清空** (“Clear”) to delete the saved history. This does not clear the current system clipboard.
 
 Your history stays on this Mac when you quit and relaunch the app. This version stores plain text only; it does not save images or other clipboard data.
 
