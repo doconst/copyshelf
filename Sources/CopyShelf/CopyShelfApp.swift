@@ -117,7 +117,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPopover() {
         guard let button = statusItem?.button else { return }
         viewState.showingShortcutSettings = false
-        NSApp.activate(ignoringOtherApps: true)
         if !popover.isShown {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
