@@ -151,9 +151,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         viewState.showingShortcutSettings = false
         viewState.selectedEntryID = historyStore.entries.first?.id
         viewState.pasteNotice = nil
-        NSApp.activate(ignoringOtherApps: true)
         if !popover.isShown {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.popover.isShown else { return }
+            self.popover.contentViewController?.view.window?.makeKeyAndOrderFront(nil)
         }
     }
 
