@@ -6,7 +6,7 @@ cd "$PROJECT_DIR"
 
 APP_DIR="$PROJECT_DIR/dist/CopyShelf.app"
 rm -rf "$APP_DIR"
-mkdir -p "$APP_DIR/Contents/MacOS"
+mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
 swiftc \
   -O \
@@ -34,8 +34,16 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 	<string>CopyShelf</string>
 	<key>CFBundleDisplayName</key>
 	<string>CopyShelf</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
@@ -45,5 +53,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
+
+printf 'APPL????' > "$APP_DIR/Contents/PkgInfo"
 
 echo "Built: $APP_DIR"
