@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     private var hotKeyHandlerInstalled = false
+    private var appDeactivationObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -36,7 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(togglePopover)
         }
 
-        popover.behavior = .transient
+        popover.behavior = .applicationDefined
         popover.contentSize = NSSize(width: 360, height: 430)
         popover.contentViewController = NSHostingController(
             rootView: ClipboardHistoryView(
@@ -49,6 +50,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         statusItem = item
+        appDeactivationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: NSApp,
+            queue: .main
+        ) { [weak self] _ in
+            self?.popover.performClose(nil)
+        }
 
         shortcutSettings.onChange = { [weak self] in
             self?.registerGlobalShortcut()
@@ -117,8 +125,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPopover() {
         guard let button = statusItem?.button else { return }
         viewState.showingShortcutSettings = false
+        NSApp.activate(ignoringOtherApps: true)
         if !popover.isShown {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+    }
+
+    deinit {
+        if let appDeactivationObserver {
+            NotificationCenter.default.removeObserver(appDeactivationObserver)
+        }
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+        }
+        if let eventHandlerRef {
+            RemoveEventHandler(eventHandlerRef)
         }
     }
 }
