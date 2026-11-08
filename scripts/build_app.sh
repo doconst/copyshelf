@@ -1,0 +1,49 @@
+#!/bin/bash
+set -euo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_DIR"
+
+APP_DIR="$PROJECT_DIR/dist/CopyShelf.app"
+rm -rf "$APP_DIR"
+mkdir -p "$APP_DIR/Contents/MacOS"
+
+swiftc \
+  -O \
+  -module-name CopyShelf \
+  -module-cache-path "$PROJECT_DIR/.build/module-cache" \
+  -framework AppKit \
+  -framework SwiftUI \
+  Sources/CopyShelf/*.swift \
+  -o "$APP_DIR/Contents/MacOS/CopyShelf"
+
+cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>CopyShelf</string>
+	<key>CFBundleIdentifier</key>
+	<string>app.copyshelf.CopyShelf</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>CopyShelf</string>
+	<key>CFBundleDisplayName</key>
+	<string>CopyShelf</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+</dict>
+</plist>
+PLIST
+
+echo "Built: $APP_DIR"
