@@ -1,14 +1,14 @@
 import SwiftUI
 
-private final class ClipboardHistoryViewState: ObservableObject {
+final class ClipboardHistoryViewState: ObservableObject {
     @Published var showingShortcutSettings = false
 }
 
 struct ClipboardHistoryView: View {
     @ObservedObject var store: ClipboardHistoryStore
     @ObservedObject var shortcutSettings: ShortcutSettings
+    @ObservedObject var viewState: ClipboardHistoryViewState
     let onSelect: (ClipboardEntry) -> Void
-    @StateObject private var viewState = ClipboardHistoryViewState()
 
     var body: some View {
         Group {

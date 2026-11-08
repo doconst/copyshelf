@@ -17,6 +17,7 @@ struct CopyShelfApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let historyStore = ClipboardHistoryStore()
     private let shortcutSettings = ShortcutSettings.shared
+    private let viewState = ClipboardHistoryViewState()
     private let popover = NSPopover()
     private var statusItem: NSStatusItem?
     private var hotKeyRef: EventHotKeyRef?
@@ -38,7 +39,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentSize = NSSize(width: 360, height: 430)
         popover.contentViewController = NSHostingController(
-            rootView: ClipboardHistoryView(store: historyStore, shortcutSettings: shortcutSettings) { [weak self] entry in
+            rootView: ClipboardHistoryView(
+                store: historyStore,
+                shortcutSettings: shortcutSettings,
+                viewState: viewState
+            ) { [weak self] entry in
                 self?.historyStore.restore(entry)
                 self?.popover.performClose(nil)
             }
@@ -71,7 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             { _, _, userData in
                 guard let userData else { return noErr }
                 let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
-                appDelegate.showPopover()
+                DispatchQueue.main.async {
+                    appDelegate.showPopover()
+                }
                 return noErr
             },
             1,
@@ -108,8 +115,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showPopover() {
-        guard !popover.isShown, let button = statusItem?.button else { return }
+        guard let button = statusItem?.button else { return }
+        viewState.showingShortcutSettings = false
         NSApp.activate(ignoringOtherApps: true)
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        if !popover.isShown {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
     }
 }
