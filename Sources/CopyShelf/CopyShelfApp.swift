@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     private var hotKeyHandlerInstalled = false
-    private var appDeactivationObserver: NSObjectProtocol?
+    private var outsideClickMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -50,12 +50,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         statusItem = item
-        appDeactivationObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.didResignActiveNotification,
-            object: NSApp,
-            queue: .main
-        ) { [weak self] _ in
-            self?.popover.performClose(nil)
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            DispatchQueue.main.async {
+                guard
+                    let self,
+                    self.popover.isShown,
+                    let popoverWindow = self.popover.contentViewController?.view.window
+                else { return }
+                if !popoverWindow.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation) {
+                    self.popover.performClose(nil)
+                }
+            }
         }
 
         shortcutSettings.onChange = { [weak self] in
@@ -85,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let userData else { return noErr }
                 let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
                 DispatchQueue.main.async {
-                    appDelegate.showPopover()
+                    appDelegate.handleGlobalShortcut()
                 }
                 return noErr
             },
@@ -131,9 +136,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func handleGlobalShortcut() {
+        if popover.isShown {
+            if viewState.showingShortcutSettings {
+                viewState.showingShortcutSettings = false
+            } else {
+                popover.performClose(nil)
+            }
+        } else {
+            showPopover()
+        }
+    }
+
     deinit {
-        if let appDeactivationObserver {
-            NotificationCenter.default.removeObserver(appDeactivationObserver)
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
         }
         if let hotKeyRef {
             UnregisterEventHotKey(hotKeyRef)
