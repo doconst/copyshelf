@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let historyStore = ClipboardHistoryStore()
     private let shortcutSettings = ShortcutSettings.shared
     private let viewState = ClipboardHistoryViewState()
-    private let popover = NSPopover()
+    private let historyPanel = ClipboardHistoryPanel()
     private var statusItem: NSStatusItem?
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
@@ -38,12 +38,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "CopyShelf")
             button.toolTip = "CopyShelf — 最近复制"
             button.target = self
-            button.action = #selector(togglePopover)
+            button.action = #selector(toggleHistoryPanel)
         }
 
-        popover.behavior = .applicationDefined
-        popover.contentSize = NSSize(width: 360, height: 430)
-        popover.contentViewController = NSHostingController(
+        historyPanel.level = .floating
+        historyPanel.isFloatingPanel = true
+        historyPanel.hidesOnDeactivate = false
+        historyPanel.isReleasedWhenClosed = false
+        historyPanel.isOpaque = false
+        historyPanel.backgroundColor = .clear
+        historyPanel.hasShadow = true
+        historyPanel.becomesKeyOnlyIfNeeded = false
+        historyPanel.contentViewController = NSHostingController(
             rootView: ClipboardHistoryView(
                 store: historyStore,
                 shortcutSettings: shortcutSettings,
@@ -57,11 +63,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 guard
                     let self,
-                    self.popover.isShown,
-                    let popoverWindow = self.popover.contentViewController?.view.window
+                    self.historyPanel.isVisible
                 else { return }
-                if !popoverWindow.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation) {
-                    self.popover.performClose(nil)
+                if !self.historyPanel.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation) {
+                    self.closeHistoryPanel(restoreFocus: false)
                 }
             }
         }
@@ -80,19 +85,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 application.processIdentifier != ProcessInfo.processInfo.processIdentifier
             else { return }
             self.targetApplication = application
+            if self.historyPanel.isVisible {
+                self.closeHistoryPanel(restoreFocus: false)
+            }
         }
         installHotKeyHandler()
         installKeyboardMonitor()
         registerGlobalShortcut()
     }
 
-    @objc private func togglePopover() {
+    @objc private func toggleHistoryPanel() {
         guard statusItem?.button != nil else { return }
 
-        if popover.isShown {
-            popover.performClose(nil)
+        if historyPanel.isVisible {
+            closeHistoryPanel(restoreFocus: true)
         } else {
-            showPopover()
+            showHistoryPanel()
         }
     }
 
@@ -142,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func showPopover() {
+    private func showHistoryPanel() {
         guard let button = statusItem?.button else { return }
         if let frontmost = NSWorkspace.shared.frontmostApplication,
            frontmost.processIdentifier != ProcessInfo.processInfo.processIdentifier {
@@ -151,25 +159,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         viewState.showingShortcutSettings = false
         viewState.selectedEntryID = historyStore.entries.first?.id
         viewState.pasteNotice = nil
-        if !popover.isShown {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        }
+        let anchorRect = button.convert(button.bounds, to: nil)
+        let screenRect = button.window?.convertToScreen(anchorRect)
+        let screen = screenRect.flatMap { rect in NSScreen.screens.first { $0.frame.intersects(rect) } } ?? NSScreen.main
+        let visibleFrame = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let panelSize = historyPanel.frame.size
+        let x = min(
+            max((screenRect?.midX ?? visibleFrame.midX) - panelSize.width / 2, visibleFrame.minX + 8),
+            visibleFrame.maxX - panelSize.width - 8
+        )
+        let y = min(
+            max((screenRect?.minY ?? visibleFrame.maxY) - panelSize.height - 6, visibleFrame.minY + 8),
+            visibleFrame.maxY - panelSize.height - 8
+        )
+        historyPanel.setFrameOrigin(NSPoint(x: x, y: y))
         NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.popover.isShown else { return }
-            self.popover.contentViewController?.view.window?.makeKeyAndOrderFront(nil)
+        historyPanel.makeKeyAndOrderFront(nil)
+        if let contentView = historyPanel.contentView {
+            historyPanel.makeFirstResponder(contentView)
         }
     }
 
+    private func closeHistoryPanel(restoreFocus: Bool) {
+        historyPanel.orderOut(nil)
+        guard restoreFocus, let targetApplication, !targetApplication.isTerminated else { return }
+        targetApplication.activate(options: [.activateAllWindows])
+    }
+
     private func handleGlobalShortcut() {
-        if popover.isShown {
+        if historyPanel.isVisible {
             if viewState.showingShortcutSettings {
                 viewState.showingShortcutSettings = false
             } else {
-                popover.performClose(nil)
+                closeHistoryPanel(restoreFocus: true)
             }
         } else {
-            showPopover()
+            showHistoryPanel()
         }
     }
 
@@ -177,7 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard
                 let self,
-                self.popover.isShown,
+                self.historyPanel.isVisible,
                 !self.viewState.showingShortcutSettings,
                 event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty
             else { return event }
@@ -195,7 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 return nil
             case UInt16(kVK_Escape):
-                self.popover.performClose(nil)
+                self.closeHistoryPanel(restoreFocus: true)
                 return nil
             default:
                 return event
@@ -231,7 +256,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         viewState.pasteNotice = nil
-        popover.performClose(nil)
+        historyPanel.orderOut(nil)
         targetApplication.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self, weak targetApplication] in
@@ -271,4 +296,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             RemoveEventHandler(eventHandlerRef)
         }
     }
+}
+
+private final class ClipboardHistoryPanel: NSPanel {
+    init() {
+        super.init(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 430),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+    }
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
 }

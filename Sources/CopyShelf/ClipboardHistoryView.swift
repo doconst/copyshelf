@@ -21,7 +21,11 @@ struct ClipboardHistoryView: View {
             }
         }
         .frame(width: 360, height: 430)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(nsColor: .windowBackgroundColor))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var historyView: some View {
