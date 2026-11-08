@@ -10,7 +10,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "CopyShelf",
-            linkerSettings: [.linkedFramework("Carbon")]
+            linkerSettings: [
+                .linkedFramework("Carbon"),
+                .linkedFramework("CoreGraphics")
+            ]
         )
     ]
 )

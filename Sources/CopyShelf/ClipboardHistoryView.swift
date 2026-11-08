@@ -2,6 +2,8 @@ import SwiftUI
 
 final class ClipboardHistoryViewState: ObservableObject {
     @Published var showingShortcutSettings = false
+    @Published var selectedEntryID: UUID?
+    @Published var pasteNotice: String?
 }
 
 struct ClipboardHistoryView: View {
@@ -25,6 +27,13 @@ struct ClipboardHistoryView: View {
     private var historyView: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+            if let pasteNotice = viewState.pasteNotice {
+                Text(pasteNotice)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 7)
+            }
             Divider().padding(.vertical, 10)
 
             if store.entries.isEmpty {
@@ -124,26 +133,36 @@ struct ClipboardHistoryView: View {
     }
 
     private var historyList: some View {
-        ScrollView {
-            LazyVStack(spacing: 5) {
-                ForEach(store.entries) { entry in
-                    Button {
-                        onSelect(entry)
-                    } label: {
-                        ClipboardHistoryRow(entry: entry)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 7)
-                                    .fill(Color(nsColor: .controlBackgroundColor))
-                            )
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 5) {
+                    ForEach(store.entries) { entry in
+                        Button {
+                            viewState.selectedEntryID = entry.id
+                            onSelect(entry)
+                        } label: {
+                            ClipboardHistoryRow(entry: entry)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 7)
+                                        .fill(viewState.selectedEntryID == entry.id
+                                            ? Color.accentColor.opacity(0.18)
+                                            : Color(nsColor: .controlBackgroundColor))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("粘贴：\(entry.text)")
+                        .id(entry.id)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("复制：\(entry.text)")
                 }
+                .padding(.vertical, 1)
             }
-            .padding(.vertical, 1)
+            .onChange(of: viewState.selectedEntryID) { selectedID in
+                guard let selectedID else { return }
+                proxy.scrollTo(selectedID, anchor: .center)
+            }
         }
     }
 
@@ -163,7 +182,7 @@ struct ClipboardHistoryView: View {
 
     private var footer: some View {
         HStack {
-            Text("点击条目放回剪贴板")
+            Text("↑↓ 选择 · 回车粘贴")
             Spacer()
             Text("\(shortcutSettings.displayShortcut) 呼出")
         }

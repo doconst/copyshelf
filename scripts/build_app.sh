@@ -10,10 +10,12 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
 swiftc \
   -O \
+  -target "$(uname -m)-apple-macosx13.0" \
   -module-name CopyShelf \
   -module-cache-path "$PROJECT_DIR/.build/module-cache" \
   -framework AppKit \
   -framework Carbon \
+  -framework CoreGraphics \
   -framework SwiftUI \
   Sources/CopyShelf/*.swift \
   -o "$APP_DIR/Contents/MacOS/CopyShelf"
@@ -56,5 +58,6 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 PLIST
 
 printf 'APPL????' > "$APP_DIR/Contents/PkgInfo"
+codesign --force --deep --sign - "$APP_DIR"
 
 echo "Built: $APP_DIR"

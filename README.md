@@ -13,9 +13,10 @@ CopyShelf 常驻在菜单栏，记录最近复制的 100 条纯文本。历史�
 1. 启动 CopyShelf 后，点击菜单栏中的剪贴板图标。
 2. 在任意应用中复制文本；CopyShelf 会把它加入历史记录。
 3. 按默认快捷键 `⌃⌥V`，或点击菜单栏图标，呼出历史记录。
-4. 选择一条记录将它放回系统剪贴板，再切回目标应用按 `⌘V` 粘贴。CopyShelf 不会自动粘贴，也不需要辅助功能权限。
-5. 点击弹层标题旁的键盘图标可以录制自定义快捷键。组合键必须包含至少一个修饰键；若快捷键已被占用，CopyShelf 会提示更换。
-6. 点击 **清空** 可删除已保存的历史记录；这不会清空当前系统剪贴板。
+4. 点击一条记录会直接粘贴到呼出历史记录前正在使用的应用。也可以用 `↑` / `↓` 选择记录，再按 `Return` 粘贴。
+5. 首次自动粘贴时，macOS 会请求允许 CopyShelf 发送粘贴按键。若暂未授权，文本仍会放回剪贴板；授权后再次选择即可自动粘贴。
+6. 点击弹层标题旁的键盘图标可以录制自定义快捷键。组合键必须包含至少一个修饰键；若快捷键已被占用，CopyShelf 会提示更换。
+7. 点击 **清空** 可删除已保存的历史记录；这不会清空当前系统剪贴板。
 
 退出后重新打开应用，历史记录仍保留在本机。当前版本只记录纯文本，不保存图片或其他类型的剪贴板内容。
 
@@ -45,9 +46,10 @@ CopyShelf lives in the menu bar and keeps the 100 most recent plain-text items y
 1. Launch CopyShelf and click its clipboard icon in the menu bar.
 2. Copy text in any app. CopyShelf adds it to your history.
 3. Press the default shortcut `⌃⌥V`, or click the menu bar icon, to show your history.
-4. Select an item to put it back on the system clipboard, then switch to the target app and press `⌘V`. CopyShelf does not paste for you and needs no Accessibility permission.
-5. Click the keyboard icon beside the popover title to record a custom shortcut. Use at least one modifier key; CopyShelf will let you know if the shortcut is already in use.
-6. Click **清空** (“Clear”) to delete the saved history. This does not clear the current system clipboard.
+4. Click an item to paste it directly into the app that was active before you opened history. You can also use `↑` / `↓` to select an item and press `Return` to paste.
+5. The first automatic paste prompts macOS to allow CopyShelf to send the paste keystroke. If permission is not granted yet, the text is still copied to the clipboard; select it again after granting permission to paste automatically.
+6. Click the keyboard icon beside the popover title to record a custom shortcut. Use at least one modifier key; CopyShelf will let you know if the shortcut is already in use.
+7. Click **清空** (“Clear”) to delete the saved history. This does not clear the current system clipboard.
 
 Your history stays on this Mac when you quit and relaunch the app. This version stores plain text only; it does not save images or other clipboard data.
 
