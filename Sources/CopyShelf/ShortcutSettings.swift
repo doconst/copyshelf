@@ -20,9 +20,17 @@ final class ShortcutSettings: ObservableObject {
         carbonModifiers = UInt32(defaults.integer(forKey: "shortcut.modifiers"))
         keyLabel = defaults.string(forKey: "shortcut.keyLabel") ?? "V"
 
-        if defaults.object(forKey: "shortcut.keyCode") == nil {
+        let previousDefaultModifiers = UInt32(optionKey | shiftKey)
+        let usesPreviousDefault = keyCode == UInt32(kVK_ANSI_V)
+            && carbonModifiers == previousDefaultModifiers
+            && keyLabel == "V"
+        if defaults.object(forKey: "shortcut.keyCode") == nil || usesPreviousDefault {
             keyCode = UInt32(kVK_ANSI_V)
-            carbonModifiers = UInt32(optionKey | shiftKey)
+            carbonModifiers = UInt32(controlKey | optionKey)
+            keyLabel = "V"
+            defaults.set(Int(keyCode), forKey: "shortcut.keyCode")
+            defaults.set(Int(carbonModifiers), forKey: "shortcut.modifiers")
+            defaults.set(keyLabel, forKey: "shortcut.keyLabel")
         }
     }
 
@@ -107,6 +115,22 @@ final class ShortcutCaptureButton: NSButton {
     }
 
     override func keyDown(with event: NSEvent) {
+        guard isRecording else {
+            super.keyDown(with: event)
+            return
+        }
+        capture(event)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard isRecording else {
+            return super.performKeyEquivalent(with: event)
+        }
+        capture(event)
+        return true
+    }
+
+    private func capture(_ event: NSEvent) {
         if event.keyCode == UInt16(kVK_Escape) {
             isRecording = false
             updateTitle()

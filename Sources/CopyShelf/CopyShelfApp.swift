@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
+    private var hotKeyHandlerInstalled = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -70,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             { _, _, userData in
                 guard let userData else { return noErr }
                 let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
-                appDelegate.togglePopover()
+                appDelegate.showPopover()
                 return noErr
             },
             1,
@@ -78,8 +79,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             userData,
             &eventHandlerRef
         )
+        hotKeyHandlerInstalled = status == noErr
         if status != noErr {
             NSLog("CopyShelf could not install the global shortcut handler: %d", status)
+            shortcutSettings.setShortcutAvailable(false)
         }
     }
 
@@ -98,6 +101,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             0,
             &hotKeyRef
         )
-        shortcutSettings.setShortcutAvailable(status == noErr)
+        shortcutSettings.setShortcutAvailable(status == noErr && hotKeyHandlerInstalled)
+        if status != noErr {
+            NSLog("CopyShelf could not register shortcut %@: %d", shortcutSettings.displayShortcut, status)
+        }
+    }
+
+    private func showPopover() {
+        guard !popover.isShown, let button = statusItem?.button else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     }
 }

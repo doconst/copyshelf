@@ -72,14 +72,14 @@ struct ClipboardHistoryView: View {
                 .padding(.top, 8)
 
             if !shortcutSettings.shortcutIsAvailable {
-                Text("这个快捷键已被占用，请换一个组合键。")
+                Text("系统无法注册这个快捷键，请换一个组合键。")
                     .font(.system(size: 11))
                     .foregroundStyle(.red)
                     .padding(.top, 8)
             }
 
             Spacer()
-            Text("默认快捷键：⌥⇧V")
+            Text("默认快捷键：⌃⌥V")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }
