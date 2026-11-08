@@ -1,4 +1,6 @@
 import AppKit
+import Carbon
+import Combine
 import SwiftUI
 
 @main
@@ -14,8 +16,11 @@ struct CopyShelfApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let historyStore = ClipboardHistoryStore()
+    private let shortcutSettings = ShortcutSettings.shared
     private let popover = NSPopover()
     private var statusItem: NSStatusItem?
+    private var hotKeyRef: EventHotKeyRef?
+    private var eventHandlerRef: EventHandlerRef?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -32,12 +37,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentSize = NSSize(width: 360, height: 430)
         popover.contentViewController = NSHostingController(
-            rootView: ClipboardHistoryView(store: historyStore) { [weak self] entry in
+            rootView: ClipboardHistoryView(store: historyStore, shortcutSettings: shortcutSettings) { [weak self] entry in
                 self?.historyStore.restore(entry)
                 self?.popover.performClose(nil)
             }
         )
         statusItem = item
+
+        shortcutSettings.onChange = { [weak self] in
+            self?.registerGlobalShortcut()
+        }
+        installHotKeyHandler()
+        registerGlobalShortcut()
     }
 
     @objc private func togglePopover() {
@@ -46,7 +57,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             popover.performClose(nil)
         } else {
+            NSApp.activate(ignoringOtherApps: true)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
+    }
+
+    private func installHotKeyHandler() {
+        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        let userData = Unmanaged.passUnretained(self).toOpaque()
+        let status = InstallEventHandler(
+            GetApplicationEventTarget(),
+            { _, _, userData in
+                guard let userData else { return noErr }
+                let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
+                appDelegate.togglePopover()
+                return noErr
+            },
+            1,
+            &eventType,
+            userData,
+            &eventHandlerRef
+        )
+        if status != noErr {
+            NSLog("CopyShelf could not install the global shortcut handler: %d", status)
+        }
+    }
+
+    private func registerGlobalShortcut() {
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+            self.hotKeyRef = nil
+        }
+
+        let hotKeyID = EventHotKeyID(signature: OSType(0x43505348), id: 1)
+        let status = RegisterEventHotKey(
+            shortcutSettings.keyCode,
+            shortcutSettings.carbonModifiers,
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &hotKeyRef
+        )
+        shortcutSettings.setShortcutAvailable(status == noErr)
     }
 }

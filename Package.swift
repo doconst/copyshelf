@@ -8,6 +8,9 @@ let package = Package(
         .executable(name: "CopyShelf", targets: ["CopyShelf"])
     ],
     targets: [
-        .executableTarget(name: "CopyShelf")
+        .executableTarget(
+            name: "CopyShelf",
+            linkerSettings: [.linkedFramework("Carbon")]
+        )
     ]
 )

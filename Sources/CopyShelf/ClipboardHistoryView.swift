@@ -1,10 +1,28 @@
 import SwiftUI
 
+private final class ClipboardHistoryViewState: ObservableObject {
+    @Published var showingShortcutSettings = false
+}
+
 struct ClipboardHistoryView: View {
     @ObservedObject var store: ClipboardHistoryStore
+    @ObservedObject var shortcutSettings: ShortcutSettings
     let onSelect: (ClipboardEntry) -> Void
+    @StateObject private var viewState = ClipboardHistoryViewState()
 
     var body: some View {
+        Group {
+            if viewState.showingShortcutSettings {
+                shortcutSettingsView
+            } else {
+                historyView
+            }
+        }
+        .frame(width: 360, height: 430)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var historyView: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider().padding(.vertical, 10)
@@ -19,8 +37,53 @@ struct ClipboardHistoryView: View {
             footer
         }
         .padding(12)
-        .frame(width: 360, height: 430)
-        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var shortcutSettingsView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Button {
+                    viewState.showingShortcutSettings = false
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .buttonStyle(.plain)
+                .help("返回剪贴板历史")
+
+                Text("设置快捷键")
+                    .font(.system(size: 14, weight: .semibold))
+                Spacer()
+            }
+
+            Divider().padding(.vertical, 14)
+
+            Text("呼出历史记录")
+                .font(.system(size: 12, weight: .medium))
+            HStack {
+                ShortcutRecorder(settings: shortcutSettings)
+                    .frame(width: 150, height: 28)
+                Spacer()
+            }
+            .padding(.top, 10)
+
+            Text("点击上方按钮，再按下包含修饰键的组合键。")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .padding(.top, 8)
+
+            if !shortcutSettings.shortcutIsAvailable {
+                Text("这个快捷键已被占用，请换一个组合键。")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+                    .padding(.top, 8)
+            }
+
+            Spacer()
+            Text("默认快捷键：⌥⇧V")
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(14)
     }
 
     private var header: some View {
@@ -38,6 +101,15 @@ struct ClipboardHistoryView: View {
             }
 
             Spacer()
+
+            Button {
+                viewState.showingShortcutSettings = true
+            } label: {
+                Image(systemName: "keyboard")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("设置呼出历史记录的快捷键")
 
             if !store.entries.isEmpty {
                 Button("清空") {
@@ -93,7 +165,7 @@ struct ClipboardHistoryView: View {
         HStack {
             Text("点击条目放回剪贴板")
             Spacer()
-            Text("纯文本 · 本机保存")
+            Text("\(shortcutSettings.displayShortcut) 呼出")
         }
         .font(.system(size: 10))
         .foregroundStyle(.tertiary)

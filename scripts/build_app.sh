@@ -13,6 +13,7 @@ swiftc \
   -module-name CopyShelf \
   -module-cache-path "$PROJECT_DIR/.build/module-cache" \
   -framework AppKit \
+  -framework Carbon \
   -framework SwiftUI \
   Sources/CopyShelf/*.swift \
   -o "$APP_DIR/Contents/MacOS/CopyShelf"
